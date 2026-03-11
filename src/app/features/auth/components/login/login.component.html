@@ -1,0 +1,34 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>PrestamoSim</mat-card-title>
+      <mat-card-subtitle>Inicia sesión para continuar</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="login-info">
+        <p>
+          Bienvenido al simulador de préstamos. Usa tu cuenta de Google para
+          entrar.
+        </p>
+      </div>
+
+      <div *ngIf="errorMessage" class="error-msg">
+        {{ errorMessage }}
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button
+        mat-raised-button
+        color="primary"
+        class="btn-full"
+        (click)="loginConGoogle()"
+        [disabled]="isLoading"
+      >
+        <mat-icon>login</mat-icon>
+        Entrar con Google
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

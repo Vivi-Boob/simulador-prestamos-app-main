@@ -1,0 +1,184 @@
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+
+.user-card {
+  margin-bottom: 24px;
+  border-top: 4px solid #3f51b5;
+}
+
+.user-card mat-card-title {
+  font-weight: 500;
+  color: #1a237e;
+}
+
+.form-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.calc-card, .results-card, .chart-card {
+  padding: 8px;
+}
+
+.chart-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+}
+
+mat-card-header {
+  margin-bottom: 16px;
+}
+
+mat-card-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #f8f9fa;
+}
+
+.value {
+  font-weight: 500;
+  color: #333;
+}
+
+.highlight {
+  color: #3f51b5;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.risk-pill {
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+.risk-low {
+  background: #2e7d32;
+}
+
+.risk-medium {
+  background: #ef6c00;
+}
+
+.risk-high {
+  background: #c62828;
+}
+
+.analysis-box {
+  background: #e3f2fd;
+  border-left: 4px solid #1976d2;
+  border-radius: 4px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.history-card {
+  margin-top: 24px;
+}
+
+.report-card {
+  margin-top: 24px;
+}
+
+.report-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.report-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.report-item span {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.history-table-wrapper {
+  overflow-x: auto;
+}
+
+.history-table {
+  border-collapse: collapse;
+  min-width: 880px;
+  width: 100%;
+}
+
+.history-table th,
+.history-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.history-table thead th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.chart-container {
+  height: 300px;
+  position: relative;
+  padding: 16px;
+}
+
+@media (max-width: 900px) {
+  .form-results-grid, .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

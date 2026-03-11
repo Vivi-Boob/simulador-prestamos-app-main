@@ -1,0 +1,68 @@
+.login-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3f51b5 0%, #1a237e 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+
+mat-card-header {
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+mat-card-title {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: #3f51b5;
+  margin-bottom: 8px !important;
+}
+
+mat-card-subtitle {
+  font-size: 1rem !important;
+  text-align: center;
+}
+
+.login-info {
+  margin: 24px 0;
+  text-align: center;
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.error-msg {
+  color: #d32f2f;
+  background-color: #ffebee;
+  padding: 12px;
+  border-radius: 4px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+mat-card-actions {
+  padding: 0 16px 16px 16px !important;
+}
+
+.btn-full {
+  width: 100%;
+  padding: 12px 0 !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-full mat-icon {
+  margin-right: 8px;
+}
