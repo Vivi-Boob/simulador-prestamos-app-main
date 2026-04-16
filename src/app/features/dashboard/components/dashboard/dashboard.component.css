@@ -181,4 +181,40 @@ form {
   .report-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .indicadores-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+.indicadores-card {
+  margin-bottom: 24px;
+  border-top: 4px solid #ff9800;
+}
+
+.indicadores-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.indicador-item {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.indicador-item span {
+  color: #6d4c41;
+  font-size: 0.8rem;
+}
+
+.indicador-item strong {
+  color: #e65100;
+  font-size: 1.05rem;
 }

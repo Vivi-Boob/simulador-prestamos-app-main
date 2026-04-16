@@ -7,6 +7,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { AuthService } from '../../../../core/services/auth.service';
+import {
+  SimulacionService,
+  Simulacion,
+  Estadisticas,
+} from '../../../../core/services/simulacion.service';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -19,15 +24,6 @@ import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import {
-  Firestore,
-  collection,
-  addDoc,
-  serverTimestamp,
-  query,
-  where,
-  getDocs,
-} from '@angular/fire/firestore';
 
 type Riesgo = 'Bajo riesgo' | 'Riesgo medio' | 'Alto riesgo';
 type SimulacionHistorial = {
@@ -81,7 +77,7 @@ export class DashboardComponent implements OnInit {
   porcentajeCuotaVsPromedio: number = 0;
   mostrarResultados: boolean = false;
 
-  // Grafica circular
+  // Grafica circular: Capital vs Interes
   public doughnutChartLabels: string[] = ['Capital', 'Interes'];
   public doughnutChartData: ChartData<'doughnut'> = {
     labels: this.doughnutChartLabels,
@@ -119,7 +115,7 @@ export class DashboardComponent implements OnInit {
     cutout: '70%',
   };
 
-  // Grafica de linea
+  // Grafica de linea: Saldo pendiente
   public lineChartLabels: string[] = [];
   public lineChartData: ChartData<'line'> = {
     labels: [],
@@ -169,11 +165,83 @@ export class DashboardComponent implements OnInit {
     },
   };
 
+  // Grafica de barras: Distribución por riesgo (datos MySQL)
+  public riesgoBarData: ChartData<'bar'> = {
+    labels: ['Bajo riesgo', 'Riesgo medio', 'Alto riesgo'],
+    datasets: [
+      {
+        data: [0, 0, 0],
+        label: 'Simulaciones',
+        backgroundColor: ['#2e7d32', '#ef6c00', '#c62828'],
+        borderRadius: 6,
+      },
+    ],
+  };
+  public riesgoBarType = 'bar' as const;
+  public riesgoBarOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+      y: {
+        beginAtZero: true,
+        ticks: { color: '#94a3b8', stepSize: 1 },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+    },
+  };
+
+  // Grafica de linea: Evolución mensual (datos MySQL)
+  public evolucionData: ChartData<'line'> = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        label: 'Monto simulado por mes',
+        backgroundColor: 'rgba(255, 152, 0, 0.15)',
+        borderColor: '#ff9800',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#e65100',
+        pointHoverRadius: 6,
+      },
+    ],
+  };
+  public evolucionType = 'line' as const;
+  public evolucionOptions: ChartConfiguration<'line'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+      y: {
+        ticks: {
+          color: '#94a3b8',
+          callback: (valor) => this.formatearMoneda(Number(valor)),
+        },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+    },
+    plugins: {
+      legend: { display: true, labels: { color: '#94a3b8' } },
+      tooltip: {
+        callbacks: {
+          label: (context) =>
+            `${context.dataset.label}: ${this.formatearMoneda(Number(context.raw ?? 0))}`,
+        },
+      },
+    },
+  };
+
   constructor(
     private authService: AuthService,
+    private simulacionService: SimulacionService,
     private router: Router,
     private fb: FormBuilder,
-    private firestore: Firestore,
   ) {
     this.formularioSimulacion = this.fb.group({
       monto: [null, [Validators.required, Validators.min(1)]],
@@ -192,81 +260,127 @@ export class DashboardComponent implements OnInit {
         this.currentUser = user;
         this.userName = user.displayName || 'Usuario';
         this.userEmail = user.email || 'Sin correo';
-        this.obtenerEstadisticas(user.uid);
+        this.cargarEstadisticas();
+        this.cargarHistorial();
       }
     });
   }
 
-  private async obtenerEstadisticas(uid: string) {
-    try {
-      const coleccionRef = collection(this.firestore, 'simulaciones');
-      const consulta = query(coleccionRef, where('uid', '==', uid));
-      const snapshot = await getDocs(consulta);
-
-      this.totalRecords = snapshot.size;
-      this.historialSimulaciones = [];
-
-      let sumaCuotas = 0;
-      let mayorInteres = 0;
-      let fechaMayorInteres: Date | null = null;
-      let fechaMasReciente: Date | null = null;
-
-      snapshot.docs.forEach((documento) => {
-        const datos = documento.data();
-        const createdAt = datos['createdAt']?.toDate?.() ?? null;
-        const montoPrestamo = Number(datos['montoPrestamo'] ?? 0);
-        const tasaMensual = Number(datos['tasaMensual'] ?? 0);
-        const plazoMeses = Number(datos['plazoMeses'] ?? 0);
-        const cuota = Number(datos['resultados']?.['cuotaMensual'] ?? 0);
-        const interes = Number(datos['resultados']?.['totalIntereses'] ?? 0);
-        const riesgoGuardado = datos['clasificacionRiesgo'] as Riesgo | undefined;
-        const clasificacionRiesgo = riesgoGuardado ?? this.calcularRiesgo(tasaMensual);
-
-        this.historialSimulaciones.push({
-          createdAt,
-          montoPrestamo,
-          tasaMensual,
-          plazoMeses,
-          cuotaMensual: cuota,
-          totalIntereses: interes,
-          clasificacionRiesgo,
-        });
-
-        sumaCuotas += cuota;
-
-        if (interes > mayorInteres) {
-          mayorInteres = interes;
-          fechaMayorInteres = createdAt;
-        }
-
-        if (
-          createdAt &&
-          (!fechaMasReciente || createdAt.getTime() > fechaMasReciente.getTime())
-        ) {
-          fechaMasReciente = createdAt;
-        }
-      });
-
-      this.lastRecordDate = fechaMasReciente;
-      this.promedioCuotaHistorica =
-        this.totalRecords > 0 ? sumaCuotas / this.totalRecords : 0;
-      this.historialSimulaciones.sort((a, b) => {
-        const fechaA = a.createdAt?.getTime() ?? 0;
-        const fechaB = b.createdAt?.getTime() ?? 0;
-        return fechaB - fechaA;
-      });
-
-      this.simulacionMayorInteres =
-        this.totalRecords > 0
-          ? { totalInteres: mayorInteres, createdAt: fechaMayorInteres }
+  private cargarEstadisticas() {
+    this.simulacionService.obtenerEstadisticas().subscribe({
+      next: (stats: Estadisticas) => {
+        this.totalRecords = stats.totalRegistros;
+        this.lastRecordDate = stats.ultimoRegistro
+          ? new Date(stats.ultimoRegistro)
+          : null;
+        this.promedioCuotaHistorica = stats.promedioCuota;
+        this.simulacionMayorInteres = stats.mayorInteres
+          ? {
+              totalInteres: stats.mayorInteres.totalInteres,
+              createdAt: new Date(stats.mayorInteres.createdAt),
+            }
           : null;
 
-      if (this.mostrarResultados) {
-        this.actualizarComparacionConPromedio();
-      }
-    } catch (e) {
-      console.error('Error al traer estadisticas:', e);
-    }
+        // Actualizar gráfica de distribución por riesgo (datos MySQL)
+        const riesgoMap: Record<string, number> = {
+          'Bajo riesgo': 0,
+          'Riesgo medio': 0,
+          'Alto riesgo': 0,
+        };
+        stats.distribucionRiesgo.forEach((r) => {
+          if (riesgoMap.hasOwnProperty(r.clasificacion)) {
+            riesgoMap[r.clasificacion] = r.cantidad;
+          }
+        });
+        this.riesgoBarData = {
+          labels: Object.keys(riesgoMap),
+          datasets: [
+            {
+              data: Object.values(riesgoMap),
+              label: 'Simulaciones',
+              backgroundColor: ['#2e7d32', '#ef6c00', '#c62828'],
+              borderRadius: 6,
+            },
+          ],
+        };
+
+        // Actualizar gráfica de evolución mensual (datos MySQL)
+        if (stats.evolucionMensual.length > 0) {
+          this.evolucionData = {
+            labels: stats.evolucionMensual.map((e) => e.mes),
+            datasets: [
+              {
+                ...this.evolucionData.datasets[0],
+                data: stats.evolucionMensual.map((e) => e.totalMonto),
+              },
+            ],
+          };
+        }
+
+        if (this.mostrarResultados) {
+          this.actualizarComparacionConPromedio();
+        }
+      },
+      error: (e) => console.error('Error al cargar estadísticas:', e),
+    });
+  }
+
+  private cargarHistorial() {
+    this.simulacionService.obtenerSimulaciones().subscribe({
+      next: (simulaciones: Simulacion[]) => {
+        this.historialSimulaciones = simulaciones.map((s) => ({
+          createdAt: s.created_at ? new Date(s.created_at) : null,
+          montoPrestamo: Number(s.monto_prestamo),
+          tasaMensual: Number(s.tasa_mensual),
+          plazoMeses: Number(s.plazo_meses),
+          cuotaMensual: Number(s.cuota_mensual),
+          totalIntereses: Number(s.total_intereses),
+          clasificacionRiesgo: s.clasificacion_riesgo as Riesgo,
+        }));
+
+        // Cargar gráficas con la última simulación si hay historial
+        if (this.historialSimulaciones.length > 0 && !this.mostrarResultados) {
+          const ultima = this.historialSimulaciones[0];
+          const monto = ultima.montoPrestamo;
+          const plazo = ultima.plazoMeses;
+          this.totalInteres = ultima.totalIntereses;
+          this.totalPagar = monto + this.totalInteres;
+          this.pagoMensual = ultima.cuotaMensual;
+          this.clasificacionRiesgo = ultima.clasificacionRiesgo;
+
+          this.doughnutChartData = {
+            labels: this.doughnutChartLabels,
+            datasets: [{
+              data: [monto, this.totalInteres],
+              backgroundColor: ['#6366f1', '#ef4444'],
+              hoverBackgroundColor: ['#4f46e5', '#dc2626'],
+              borderColor: '#ffffff',
+              borderWidth: 2,
+            }],
+          };
+
+          const etiquetas: string[] = [];
+          const saldos: number[] = [];
+          for (let i = 1; i <= plazo; i++) {
+            const saldoActual = this.totalPagar - this.pagoMensual * i;
+            if (plazo <= 12 || i % Math.ceil(plazo / 12) === 0 || i === plazo) {
+              etiquetas.push(`Mes ${i}`);
+              saldos.push(Math.max(0, saldoActual));
+            }
+          }
+          this.lineChartData = {
+            labels: etiquetas,
+            datasets: [{
+              ...this.lineChartData.datasets[0],
+              data: saldos,
+            }],
+          };
+
+          this.mostrarResultados = true;
+        }
+      },
+      error: (e) => console.error('Error al cargar historial:', e),
+    });
   }
 
   calcular() {
@@ -310,31 +424,26 @@ export class DashboardComponent implements OnInit {
     this.mostrarResultados = true;
   }
 
-  private async guardarSimulacion() {
+  private guardarSimulacion() {
     if (!this.currentUser) return;
 
-    const datosAGuardar = {
-      uid: this.currentUser.uid,
-      nombreUsuario: this.currentUser.displayName,
-      correo: this.currentUser.email,
-      createdAt: serverTimestamp(),
-      montoPrestamo: this.formularioSimulacion.value.monto,
-      tasaMensual: this.formularioSimulacion.value.tasaInteres,
-      plazoMeses: this.formularioSimulacion.value.plazo,
-      clasificacionRiesgo: this.clasificacionRiesgo,
-      resultados: {
+    this.simulacionService
+      .guardarSimulacion({
+        montoPrestamo: this.formularioSimulacion.value.monto,
+        tasaMensual: this.formularioSimulacion.value.tasaInteres,
+        plazoMeses: this.formularioSimulacion.value.plazo,
         cuotaMensual: this.pagoMensual,
         totalAPagar: this.totalPagar,
         totalIntereses: this.totalInteres,
-      },
-    };
-
-    try {
-      await addDoc(collection(this.firestore, 'simulaciones'), datosAGuardar);
-      this.obtenerEstadisticas(this.currentUser.uid);
-    } catch (error) {
-      console.error('Error al guardar simulacion:', error);
-    }
+        clasificacionRiesgo: this.clasificacionRiesgo,
+      })
+      .subscribe({
+        next: () => {
+          this.cargarEstadisticas();
+          this.cargarHistorial();
+        },
+        error: (e) => console.error('Error al guardar simulación:', e),
+      });
   }
 
   cerrarSesion() {
@@ -473,7 +582,7 @@ export class DashboardComponent implements OnInit {
     doc.save(`reporte-financiero-${Date.now()}.pdf`);
   }
 
-  private formatearMoneda(valor: number): string {
+  formatearMoneda(valor: number): string {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
