@@ -3,6 +3,7 @@ const cors = require('cors');
 
 const { verificarToken } = require('./middleware/auth');
 const simulacionesRouter = require('./routes/simulaciones');
+const apiExternaRouter = require('./routes/api-externa');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json());
 
 // Rutas protegidas (requieren token Firebase)
 app.use('/api/simulaciones', verificarToken, simulacionesRouter);
+app.use('/api/externa', verificarToken, apiExternaRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
