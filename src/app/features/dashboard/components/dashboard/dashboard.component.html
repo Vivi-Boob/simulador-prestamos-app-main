@@ -14,7 +14,9 @@
     <mat-card class="user-card mat-elevation-z2">
       <mat-card-header>
         <div mat-card-avatar>
-          <mat-icon color="primary" style="font-size: 40px; width: 40px; height: 40px"
+          <mat-icon
+            color="primary"
+            style="font-size: 40px; width: 40px; height: 40px"
             >account_circle</mat-icon
           >
         </div>
@@ -26,17 +28,26 @@
           Bienvenido a tu simulador personal. Actualmente tienes registrados
           <strong>{{ totalRecords }}</strong> calculos.
         </p>
-        <p *ngIf="lastRecordDate" style="color: #666; font-size: 0.85rem; margin-top: 8px">
+        <p
+          *ngIf="lastRecordDate"
+          style="color: #666; font-size: 0.85rem; margin-top: 8px"
+        >
           <mat-icon
-            style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle"
+            style="
+              font-size: 14px;
+              width: 14px;
+              height: 14px;
+              vertical-align: middle;
+            "
             >history</mat-icon
           >
-          Ultima actividad: {{ lastRecordDate | date: 'medium' }}
+          Ultima actividad: {{ lastRecordDate | date: "medium" }}
         </p>
         <p *ngIf="simulacionMayorInteres" style="margin-top: 8px; color: #333">
-          Mayor interes historico: <strong>{{ simulacionMayorInteres.totalInteres | currency }}</strong>
+          Mayor interes historico:
+          <strong>{{ simulacionMayorInteres.totalInteres | currency }}</strong>
           <span *ngIf="simulacionMayorInteres.createdAt">
-            ({{ simulacionMayorInteres.createdAt | date: 'shortDate' }})
+            ({{ simulacionMayorInteres.createdAt | date: "shortDate" }})
           </span>
         </p>
       </mat-card-content>
@@ -52,7 +63,12 @@
           <form [formGroup]="formularioSimulacion" (ngSubmit)="calcular()">
             <mat-form-field appearance="fill" class="full-width">
               <mat-label>Monto del prestamo</mat-label>
-              <input matInput type="number" formControlName="monto" placeholder="Ej: 5000" />
+              <input
+                matInput
+                type="number"
+                formControlName="monto"
+                placeholder="Ej: 5000"
+              />
               <mat-icon matPrefix>attach_money</mat-icon>
               <mat-error *ngIf="formularioSimulacion.get('monto')?.invalid"
                 >Ingresa un monto valido</mat-error
@@ -68,14 +84,20 @@
                 placeholder="Ej: 1.5"
               />
               <mat-icon matSuffix>percent</mat-icon>
-              <mat-error *ngIf="formularioSimulacion.get('tasaInteres')?.invalid"
+              <mat-error
+                *ngIf="formularioSimulacion.get('tasaInteres')?.invalid"
                 >Ingresa la tasa de interes</mat-error
               >
             </mat-form-field>
 
             <mat-form-field appearance="fill" class="full-width">
               <mat-label>Plazo en meses</mat-label>
-              <input matInput type="number" formControlName="plazo" placeholder="Ej: 12" />
+              <input
+                matInput
+                type="number"
+                formControlName="plazo"
+                placeholder="Ej: 12"
+              />
               <mat-icon matPrefix>calendar_today</mat-icon>
               <mat-error *ngIf="formularioSimulacion.get('plazo')?.invalid"
                 >Indica el numero de meses</mat-error
@@ -108,15 +130,21 @@
             </div>
             <div class="result-item">
               <span>Total Intereses:</span>
-              <span class="value" style="color: #d32f2f">{{ totalInteres | currency }}</span>
+              <span class="value" style="color: #d32f2f">{{
+                totalInteres | currency
+              }}</span>
             </div>
             <div class="result-item">
               <span>Clasificacion de riesgo:</span>
-              <span class="risk-pill" [ngClass]="{
-                'risk-low': clasificacionRiesgo === 'Bajo riesgo',
-                'risk-medium': clasificacionRiesgo === 'Riesgo medio',
-                'risk-high': clasificacionRiesgo === 'Alto riesgo'
-              }">{{ clasificacionRiesgo }}</span>
+              <span
+                class="risk-pill"
+                [ngClass]="{
+                  'risk-low': clasificacionRiesgo === 'Bajo riesgo',
+                  'risk-medium': clasificacionRiesgo === 'Riesgo medio',
+                  'risk-high': clasificacionRiesgo === 'Alto riesgo',
+                }"
+                >{{ clasificacionRiesgo }}</span
+              >
             </div>
             <mat-divider style="margin: 8px 0"></mat-divider>
             <div class="result-item" style="background: transparent">
@@ -127,13 +155,17 @@
 
           <div class="analysis-box" *ngIf="promedioCuotaHistorica > 0">
             <p>
-              Promedio historico de cuota: <strong>{{ promedioCuotaHistorica | currency }}</strong>
+              Promedio historico de cuota:
+              <strong>{{ promedioCuotaHistorica | currency }}</strong>
             </p>
             <p>
               Tu cuota actual esta
-              <strong>{{ diferenciaCuotaVsPromedio >= 0 ? 'por encima' : 'por debajo' }}</strong>
-              por {{ diferenciaAbsolutaCuotaVsPromedio | currency }}
-              ({{ porcentajeCuotaVsPromedio | number: '1.1-1' }}%).
+              <strong>{{
+                diferenciaCuotaVsPromedio >= 0 ? "por encima" : "por debajo"
+              }}</strong>
+              por {{ diferenciaAbsolutaCuotaVsPromedio | currency }} ({{
+                porcentajeCuotaVsPromedio | number: "1.1-1"
+              }}%).
             </p>
           </div>
 
@@ -143,6 +175,71 @@
         </mat-card-content>
       </mat-card>
     </div>
+
+    <!-- COMPARACION CON TASAS DEL MERCADO -->
+    <mat-card
+      class="mat-elevation-z2"
+      style="margin-top: 24px"
+      *ngIf="mostrarResultados && tasasBancos.length > 0"
+    >
+      <mat-card-header>
+        <mat-card-title>Tasas del mercado</mat-card-title>
+        <mat-card-subtitle>
+          Tu tasa ingresada:
+          <strong
+            >{{
+              formularioSimulacion.get("tasaInteres")?.value | number: "1.2-2"
+            }}%</strong
+          >
+          mensual
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="result-list">
+          <div class="result-item" *ngFor="let banco of tasasBancos">
+            <span>{{ banco.bank }}</span>
+            <span class="value"
+              >{{ banco.monthlyRate | number: "1.2-2" }}%</span
+            >
+            <span
+              [ngStyle]="{
+                color:
+                  banco.monthlyRate <
+                  formularioSimulacion.get('tasaInteres')?.value
+                    ? '#2e7d32'
+                    : '#c62828',
+                fontWeight: '600',
+              }"
+            >
+              {{
+                banco.monthlyRate <
+                formularioSimulacion.get("tasaInteres")?.value
+                  ? "↓ menor"
+                  : "↑ mayor"
+              }}
+            </span>
+          </div>
+        </div>
+
+        <div class="analysis-box" *ngIf="bancosConMenorTasa.length > 0">
+          <strong>Bancos con menor tasa que la tuya:</strong>
+          <div *ngFor="let banco of bancosConMenorTasa">
+            <p>{{ banco.bank }} - {{ banco.monthlyRate | number: "1.2-2" }}%</p>
+          </div>
+        </div>
+
+        <div class="analysis-box" *ngIf="bancosConMayorTasa.length > 0">
+          <strong>Bancos con mayor tasa que la tuya:</strong>
+          <div *ngFor="let banco of bancosConMayorTasa">
+            <p>{{ banco.bank }} - {{ banco.monthlyRate | number: "1.2-2" }}%</p>
+          </div>
+        </div>
+
+        <div class="analysis-box" *ngIf="bancosConMenorTasa.length === 0">
+          Tu tasa es igual o menor a la de todos los bancos del mercado.
+        </div>
+      </mat-card-content>
+    </mat-card>
 
     <!-- GRAFICAS SIMULACION ACTUAL (2 gráficas) -->
     <div class="charts-grid" *ngIf="mostrarResultados">
@@ -184,7 +281,9 @@
       <mat-card class="chart-card mat-elevation-z2">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon style="vertical-align: middle; margin-right: 6px">bar_chart</mat-icon>
+            <mat-icon style="vertical-align: middle; margin-right: 6px"
+              >bar_chart</mat-icon
+            >
             Distribucion por Riesgo
           </mat-card-title>
         </mat-card-header>
@@ -203,7 +302,9 @@
       <mat-card class="chart-card mat-elevation-z2">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon style="vertical-align: middle; margin-right: 6px">show_chart</mat-icon>
+            <mat-icon style="vertical-align: middle; margin-right: 6px"
+              >show_chart</mat-icon
+            >
             Evolucion Mensual de Montos
           </mat-card-title>
         </mat-card-header>
@@ -221,7 +322,10 @@
     </div>
 
     <!-- REPORTE FINANCIERO -->
-    <mat-card class="report-card mat-elevation-z2" *ngIf="historialSimulaciones.length > 0">
+    <mat-card
+      class="report-card mat-elevation-z2"
+      *ngIf="historialSimulaciones.length > 0"
+    >
       <mat-card-header>
         <mat-card-title>Reporte Financiero Personalizado</mat-card-title>
       </mat-card-header>
@@ -241,7 +345,7 @@
           </div>
           <div class="report-item">
             <span>Promedio tasa mensual</span>
-            <strong>{{ promedioTasaHistorica | number: '1.2-2' }}%</strong>
+            <strong>{{ promedioTasaHistorica | number: "1.2-2" }}%</strong>
           </div>
         </div>
 
@@ -251,7 +355,11 @@
         </div>
 
         <div style="margin-top: 12px">
-          <button mat-raised-button color="primary" (click)="descargarReporteFinanciero()">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="descargarReporteFinanciero()"
+          >
             <mat-icon>download</mat-icon>
             Descargar TXT
           </button>
@@ -269,7 +377,10 @@
     </mat-card>
 
     <!-- HISTORIAL -->
-    <mat-card class="history-card mat-elevation-z2" *ngIf="historialSimulaciones.length > 0">
+    <mat-card
+      class="history-card mat-elevation-z2"
+      *ngIf="historialSimulaciones.length > 0"
+    >
       <mat-card-header>
         <mat-card-title>Historial de Simulaciones</mat-card-title>
       </mat-card-header>
@@ -289,18 +400,30 @@
             </thead>
             <tbody>
               <tr *ngFor="let simulacion of historialSimulaciones">
-                <td>{{ simulacion.createdAt ? (simulacion.createdAt | date: 'short') : 'Sin fecha' }}</td>
+                <td>
+                  {{
+                    simulacion.createdAt
+                      ? (simulacion.createdAt | date: "short")
+                      : "Sin fecha"
+                  }}
+                </td>
                 <td>{{ simulacion.montoPrestamo | currency }}</td>
-                <td>{{ simulacion.tasaMensual | number: '1.2-2' }}</td>
+                <td>{{ simulacion.tasaMensual | number: "1.2-2" }}</td>
                 <td>{{ simulacion.plazoMeses }}</td>
                 <td>{{ simulacion.cuotaMensual | currency }}</td>
                 <td>{{ simulacion.totalIntereses | currency }}</td>
                 <td>
-                  <span class="risk-pill" [ngClass]="{
-                    'risk-low': simulacion.clasificacionRiesgo === 'Bajo riesgo',
-                    'risk-medium': simulacion.clasificacionRiesgo === 'Riesgo medio',
-                    'risk-high': simulacion.clasificacionRiesgo === 'Alto riesgo'
-                  }">
+                  <span
+                    class="risk-pill"
+                    [ngClass]="{
+                      'risk-low':
+                        simulacion.clasificacionRiesgo === 'Bajo riesgo',
+                      'risk-medium':
+                        simulacion.clasificacionRiesgo === 'Riesgo medio',
+                      'risk-high':
+                        simulacion.clasificacionRiesgo === 'Alto riesgo',
+                    }"
+                  >
                     {{ simulacion.clasificacionRiesgo }}
                   </span>
                 </td>

@@ -4,65 +4,47 @@ import { Auth } from '@angular/fire/auth';
 import { Observable, from, switchMap } from 'rxjs';
 import { environment } from '../../../enviroments/firebase';
 
-export interface TasasCambio {
-  base: string;
-  fecha: string;
-  tasas: { [moneda: string]: number };
-  esMock?: boolean;
-}
-
-export interface IndicadoresFinancieros {
-  fecha: string;
-  tasaUsura: number;
-  tasaReferenciaBanrep: number;
-  inflacionAnual: number;
-  dtf: number;
-  ipc: number;
-  tasaPromedioConsumo: number;
-  tasaPromedioMicrocredito: number;
-  tasaPromedioVivienda: number;
-  salarioMinimo: number;
-  uvt: number;
+export interface BancoTasa {
+  id: number;
+  bank: string;
+  monthlyRate: number;
+  date: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ApiExternaService {
   private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient, private auth: Auth) {}
+  constructor(
+    private http: HttpClient,
+    private auth: Auth,
+  ) {}
 
   private getAuthHeaders(): Observable<HttpHeaders> {
-    return from(this.auth.currentUser!.getIdToken()).pipe(
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+    return from(user.getIdToken()).pipe(
       switchMap((token) =>
         from(
           Promise.resolve(
             new HttpHeaders({
               Authorization: `Bearer ${token}`,
-            })
-          )
-        )
-      )
+            }),
+          ),
+        ),
+      ),
     );
   }
 
-  obtenerTasasCambio(): Observable<TasasCambio> {
+  obtenerTasasBancos(): Observable<BancoTasa[]> {
     return this.getAuthHeaders().pipe(
-      switchMap((headers) =>
-        this.http.get<TasasCambio>(`${this.apiUrl}/externa/tasas-cambio`, {
+      switchMap((headers: HttpHeaders) =>
+        this.http.get<BancoTasa[]>(`${this.apiUrl}/externa/tasas-bancos`, {
           headers,
-        })
-      )
-    );
-  }
-
-  obtenerIndicadoresFinancieros(): Observable<IndicadoresFinancieros> {
-    return this.getAuthHeaders().pipe(
-      switchMap((headers) =>
-        this.http.get<IndicadoresFinancieros>(
-          `${this.apiUrl}/externa/indicadores-financieros`,
-          { headers }
-        )
-      )
+        }),
+      ),
     );
   }
 }

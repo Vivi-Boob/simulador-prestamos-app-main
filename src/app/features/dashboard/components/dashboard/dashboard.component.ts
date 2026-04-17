@@ -12,6 +12,10 @@ import {
   Simulacion,
   Estadisticas,
 } from '../../../../core/services/simulacion.service';
+import {
+  ApiExternaService,
+  BancoTasa,
+} from '../../../../core/services/api-externa.service';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -62,8 +66,10 @@ export class DashboardComponent implements OnInit {
   lastRecordDate: Date | null = null;
   totalRecords: number = 0;
   promedioCuotaHistorica: number = 0;
-  simulacionMayorInteres: { totalInteres: number; createdAt: Date | null } | null =
-    null;
+  simulacionMayorInteres: {
+    totalInteres: number;
+    createdAt: Date | null;
+  } | null = null;
   historialSimulaciones: SimulacionHistorial[] = [];
 
   formularioSimulacion: FormGroup;
@@ -76,6 +82,11 @@ export class DashboardComponent implements OnInit {
   diferenciaAbsolutaCuotaVsPromedio: number = 0;
   porcentajeCuotaVsPromedio: number = 0;
   mostrarResultados: boolean = false;
+
+  tasasBancos: BancoTasa[] = [];
+  bancosConMenorTasa: BancoTasa[] = [];
+  bancosConMayorTasa: BancoTasa[] = [];
+  cargandoTasas: boolean = false;
 
   // Grafica circular: Capital vs Interes
   public doughnutChartLabels: string[] = ['Capital', 'Interes'];
@@ -103,7 +114,7 @@ export class DashboardComponent implements OnInit {
       },
       tooltip: {
         callbacks: {
-          label: (context) => {
+          label: (context : any) => {
             const value = Number(context.raw ?? 0);
             const total = this.totalPagar || 1;
             const percent = (value / total) * 100;
@@ -147,7 +158,7 @@ export class DashboardComponent implements OnInit {
         grid: { color: 'rgba(255, 255, 255, 0.05)' },
         ticks: {
           color: '#94a3b8',
-          callback: (valor) => this.formatearMoneda(Number(valor)),
+          callback: (valor: any) => this.formatearMoneda(Number(valor)),
         },
       },
     },
@@ -158,7 +169,7 @@ export class DashboardComponent implements OnInit {
       },
       tooltip: {
         callbacks: {
-          label: (context) =>
+          label: (context: any) =>
             `${context.dataset.label}: ${this.formatearMoneda(Number(context.raw ?? 0))}`,
         },
       },
@@ -221,7 +232,7 @@ export class DashboardComponent implements OnInit {
       y: {
         ticks: {
           color: '#94a3b8',
-          callback: (valor) => this.formatearMoneda(Number(valor)),
+          callback: (valor : any) => this.formatearMoneda(Number(valor)),
         },
         grid: { color: 'rgba(0,0,0,0.05)' },
       },
@@ -230,7 +241,7 @@ export class DashboardComponent implements OnInit {
       legend: { display: true, labels: { color: '#94a3b8' } },
       tooltip: {
         callbacks: {
-          label: (context) =>
+          label: (context : any) =>
             `${context.dataset.label}: ${this.formatearMoneda(Number(context.raw ?? 0))}`,
         },
       },
@@ -240,6 +251,7 @@ export class DashboardComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private simulacionService: SimulacionService,
+    private apiExternaService: ApiExternaService,
     private router: Router,
     private fb: FormBuilder,
   ) {
@@ -350,13 +362,15 @@ export class DashboardComponent implements OnInit {
 
           this.doughnutChartData = {
             labels: this.doughnutChartLabels,
-            datasets: [{
-              data: [monto, this.totalInteres],
-              backgroundColor: ['#6366f1', '#ef4444'],
-              hoverBackgroundColor: ['#4f46e5', '#dc2626'],
-              borderColor: '#ffffff',
-              borderWidth: 2,
-            }],
+            datasets: [
+              {
+                data: [monto, this.totalInteres],
+                backgroundColor: ['#6366f1', '#ef4444'],
+                hoverBackgroundColor: ['#4f46e5', '#dc2626'],
+                borderColor: '#ffffff',
+                borderWidth: 2,
+              },
+            ],
           };
 
           const etiquetas: string[] = [];
@@ -370,10 +384,12 @@ export class DashboardComponent implements OnInit {
           }
           this.lineChartData = {
             labels: etiquetas,
-            datasets: [{
-              ...this.lineChartData.datasets[0],
-              data: saldos,
-            }],
+            datasets: [
+              {
+                ...this.lineChartData.datasets[0],
+                data: saldos,
+              },
+            ],
           };
 
           this.mostrarResultados = true;
@@ -420,8 +436,29 @@ export class DashboardComponent implements OnInit {
       ],
     };
 
+    this.compararConTasasBancos(tasaInteres);
     this.guardarSimulacion();
     this.mostrarResultados = true;
+  }
+
+  private compararConTasasBancos(tasaIngresada: number) {
+    this.cargandoTasas = true;
+    this.apiExternaService.obtenerTasasBancos().subscribe({
+      next: (bancos: BancoTasa[]) => {
+        this.tasasBancos = bancos;
+        this.bancosConMenorTasa = bancos.filter(
+          (b: BancoTasa) => b.monthlyRate < tasaIngresada,
+        );
+        this.bancosConMayorTasa = bancos.filter(
+          (b: BancoTasa) => b.monthlyRate > tasaIngresada,
+        );
+        this.cargandoTasas = false;
+      },
+      error: () => {
+        this.tasasBancos = [];
+        this.cargandoTasas = false;
+      },
+    });
   }
 
   private guardarSimulacion() {
@@ -564,9 +601,13 @@ export class DashboardComponent implements OnInit {
     if (this.historialSimulaciones.length > 0) {
       autoTable(doc, {
         startY: y + 4,
-        head: [['Fecha', 'Monto', 'Tasa', 'Meses', 'Cuota', 'Interes', 'Riesgo']],
+        head: [
+          ['Fecha', 'Monto', 'Tasa', 'Meses', 'Cuota', 'Interes', 'Riesgo'],
+        ],
         body: this.historialSimulaciones.map((item) => [
-          item.createdAt ? item.createdAt.toLocaleDateString('es-CO') : 'Sin fecha',
+          item.createdAt
+            ? item.createdAt.toLocaleDateString('es-CO')
+            : 'Sin fecha',
           this.formatearMoneda(item.montoPrestamo),
           `${item.tasaMensual.toFixed(2)}%`,
           String(item.plazoMeses),
@@ -604,7 +645,8 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.diferenciaCuotaVsPromedio = this.pagoMensual - this.promedioCuotaHistorica;
+    this.diferenciaCuotaVsPromedio =
+      this.pagoMensual - this.promedioCuotaHistorica;
     this.diferenciaAbsolutaCuotaVsPromedio = Math.abs(
       this.diferenciaCuotaVsPromedio,
     );

@@ -26,7 +26,9 @@
   margin-bottom: 24px;
 }
 
-.calc-card, .results-card, .chart-card {
+.calc-card,
+.results-card,
+.chart-card {
   padding: 8px;
 }
 
@@ -174,7 +176,8 @@ form {
 }
 
 @media (max-width: 900px) {
-  .form-results-grid, .charts-grid {
+  .form-results-grid,
+  .charts-grid {
     grid-template-columns: 1fr;
   }
 
@@ -218,3 +221,5 @@ form {
   color: #e65100;
   font-size: 1.05rem;
 }
+
+
