@@ -1,109 +1,177 @@
-# Simulador de Prestamos App
+# Simulador de Préstamos
 
-Aplicacion web desarrollada con Angular 17 para simular prestamos personales, analizar intereses y generar reportes financieros personalizados.
+Monorepo con frontend Angular 17 y backend Express/Node.js para simular préstamos personales, analizar intereses y generar reportes financieros.
 
-## Objetivo
+## Estructura del proyecto
 
-Permitir que un cliente:
-- simule un prestamo con monto, tasa mensual y plazo
-- entienda el impacto de los intereses en el costo total
-- compare su simulacion actual contra su historial
-- visualice resultados con graficas
-- exporte un reporte financiero
-
-## Funcionalidades implementadas
-
-### 1. Simulacion financiera
-- Interes total = monto * (tasa / 100) * meses
-- Total a pagar = monto + interes total
-- Cuota mensual = total a pagar / meses
-
-### 2. Clasificacion de riesgo
-- `tasa <= 1` -> `Bajo riesgo`
-- `1 < tasa <= 3` -> `Riesgo medio`
-- `tasa > 3` -> `Alto riesgo`
-
-### 3. Analisis historico
-- Total de simulaciones por usuario
-- Ultima actividad
-- Simulacion con mayor interes historico
-- Promedio historico de cuota
-- Comparacion de cuota actual vs promedio historico
-
-### 4. Visualizacion
-- Grafica circular: capital vs interes
-- Grafica de linea: saldo pendiente por mes
-- Tabla con historial de simulaciones
-
-### 5. Reporte financiero personalizado
-- Resumen de metricas historicas
-- Recomendacion segun riesgo y comportamiento
-- Exportacion a:
-  - TXT
-  - PDF
-
-## Stack tecnologico
-
-- Angular 17 (standalone components)
-- Angular Material
-- Firebase Authentication (Google)
-- Firestore
-- ng2-charts + Chart.js
-- jsPDF + jspdf-autotable
+```
+simulador-prestamos-app/
+├── frontend/          ← Angular 17 (cliente web)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/      (guards, services)
+│   │   │   └── features/  (auth, dashboard)
+│   │   └── enviroments/
+│   └── package.json
+│
+├── backend/           ← Express + Node.js (API REST)
+│   ├── routes/        (simulaciones, api-externa)
+│   ├── middleware/    (auth Firebase)
+│   ├── server.js
+│   ├── db.js
+│   ├── schema.sql
+│   └── package.json
+│
+└── package.json       ← Scripts de conveniencia (raíz)
+```
 
 ## Requisitos
 
 - Node.js 20+
 - npm 10+
+- MySQL 8+
 - Navegador moderno (Chrome recomendado)
 
-## Configuracion
+---
 
-La configuracion de Firebase se encuentra en:
-
-- `src/enviroments/firebase.ts`
-
-Nota: la carpeta se llama `enviroments` en el proyecto actual.
-
-## Instalacion
+## Instalación
 
 ```bash
-npm install
+# Instalar dependencias de ambas partes de una vez
+npm run install:all
+
+# O por separado:
+cd frontend && npm install
+cd backend  && npm install
 ```
 
-## Ejecucion local
+---
+
+## Configuración
+
+### Backend — variables de entorno
 
 ```bash
-npm run start
+cp backend/.env.example backend/.env
 ```
 
-Abrir en:
+Editar `backend/.env` con los valores reales:
 
-- `http://localhost:4200/`
-- o `http://127.0.0.1:4200/`
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=tu_password
+DB_NAME=simulador_prestamos
+PORT=3000
+```
 
-## Scripts utiles
+### Frontend — Firebase
 
-- `npm run start` -> servidor de desarrollo
-- `npm run build` -> build de produccion
-- `npm run test` -> pruebas unitarias (Karma)
+La configuración de Firebase está en:
 
-## Validacion recomendada antes de entregar
+```
+frontend/src/enviroments/firebase.ts
+```
+
+---
+
+## Ejecución local
+
+Abrir **dos terminales**:
 
 ```bash
+# Terminal 1 — Frontend
+npm run frontend
+# → http://localhost:4200
+
+# Terminal 2 — Backend
+npm run backend
+# → http://localhost:3000
+```
+
+O correrlos manualmente:
+
+```bash
+cd frontend && npm run start    # Angular en :4200
+cd backend  && npm run dev      # Express en :3000 (node --watch)
+```
+
+---
+
+## Funcionalidades
+
+### Simulación financiera
+- Interés total = monto × (tasa / 100) × meses
+- Total a pagar = monto + interés total
+- Cuota mensual = total a pagar / meses
+
+### Clasificación de riesgo
+| Tasa | Nivel |
+|------|-------|
+| ≤ 1% | Bajo riesgo |
+| 1% – 3% | Riesgo medio |
+| > 3% | Alto riesgo |
+
+### Análisis histórico
+- Total de simulaciones por usuario
+- Última actividad
+- Simulación con mayor interés histórico
+- Promedio histórico de cuota
+- Comparación cuota actual vs promedio histórico
+
+### Visualización
+- Gráfica circular: capital vs interés
+- Gráfica de línea: saldo pendiente por mes
+- Tabla con historial de simulaciones
+
+### Reporte financiero
+- Resumen de métricas históricas
+- Recomendación según riesgo y comportamiento
+- Exportación a TXT y PDF
+
+---
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | Angular 17 (standalone components) |
+| UI | Angular Material, ng2-charts + Chart.js |
+| Auth | Firebase Authentication (Google) |
+| Base de datos | Firestore + MySQL 8 |
+| Backend | Express 4, Node.js 20+ |
+| PDF | jsPDF + jspdf-autotable |
+
+---
+
+## Scripts disponibles
+
+### Raíz del monorepo
+| Comando | Descripción |
+|---------|-------------|
+| `npm run frontend` | Levanta el servidor de desarrollo Angular |
+| `npm run backend` | Levanta el servidor Express con `node --watch` |
+| `npm run install:all` | Instala dependencias de frontend y backend |
+
+### Dentro de `frontend/`
+| Comando | Descripción |
+|---------|-------------|
+| `npm run start` | Servidor de desarrollo (`:4200`) |
+| `npm run build` | Build de producción |
+| `npm run test` | Pruebas unitarias (Karma) |
+
+### Dentro de `backend/`
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor con `node --watch` (recarga automática) |
+| `npm run start` | Servidor en modo producción |
+
+---
+
+## Validación antes de entregar
+
+```bash
+cd frontend
 npm run build
 npm run test -- --watch=false --browsers=ChromeHeadless
-```
-
-## Estructura principal
-
-```text
-src/
-  app/
-    core/
-      guards/
-      services/
-    features/
-      auth/
-      dashboard/
 ```

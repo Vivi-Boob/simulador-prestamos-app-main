@@ -1,13 +1,19 @@
-const mysql = require('mysql2/promise');
+const { MongoClient } = require('mongodb');
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'simulador_prestamos',
-  waitForConnections: true,
-  connectionLimit: 10,
-  charset: 'utf8mb4',
-});
+const uri = process.env.MONGODB_URI;
+const DB_NAME = process.env.DB_NAME;
 
-module.exports = pool;
+let client;
+let db;
+
+async function connectDB() {
+  if (db) return db;
+
+  client = new MongoClient(uri);
+  await client.connect();
+  db = client.db(DB_NAME);
+  console.log('Conectado a MongoDB Atlas');
+  return db;
+}
+
+module.exports = { connectDB };

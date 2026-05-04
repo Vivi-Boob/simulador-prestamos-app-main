@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');
+const { connectDB } = require('../db');
+const { ObjectId } = require('mongodb');
 
 // POST /api/simulaciones — Crear una simulación
 router.post('/', async (req, res) => {
@@ -16,22 +17,29 @@ router.post('/', async (req, res) => {
       clasificacionRiesgo,
     } = req.body;
 
+    const db = await connectDB();
+
     // Upsert del usuario
-    await pool.execute(
-      `INSERT INTO usuarios (uid, nombre, correo) VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), correo = VALUES(correo)`,
-      [uid, userName, userEmail]
+    await db.collection('usuarios').updateOne(
+      { uid },
+      { $set: { nombre: userName, correo: userEmail } },
+      { upsert: true }
     );
 
     // Insertar simulación
-    const [result] = await pool.execute(
-      `INSERT INTO simulaciones
-        (uid, monto_prestamo, tasa_mensual, plazo_meses, cuota_mensual, total_a_pagar, total_intereses, clasificacion_riesgo)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uid, montoPrestamo, tasaMensual, plazoMeses, cuotaMensual, totalAPagar, totalIntereses, clasificacionRiesgo]
-    );
+    const result = await db.collection('simulaciones').insertOne({
+      uid,
+      monto_prestamo: montoPrestamo,
+      tasa_mensual: tasaMensual,
+      plazo_meses: plazoMeses,
+      cuota_mensual: cuotaMensual,
+      total_a_pagar: totalAPagar,
+      total_intereses: totalIntereses,
+      clasificacion_riesgo: clasificacionRiesgo,
+      created_at: new Date(),
+    });
 
-    res.status(201).json({ id: result.insertId, message: 'Simulación guardada' });
+    res.status(201).json({ id: result.insertedId, message: 'Simulación guardada' });
   } catch (error) {
     console.error('Error al guardar simulación:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -43,16 +51,17 @@ router.get('/', async (req, res) => {
   try {
     const { uid } = req;
 
-    const [rows] = await pool.execute(
-      `SELECT id, monto_prestamo, tasa_mensual, plazo_meses, cuota_mensual,
-              total_a_pagar, total_intereses, clasificacion_riesgo, created_at
-       FROM simulaciones
-       WHERE uid = ?
-       ORDER BY created_at DESC`,
-      [uid]
-    );
+    const db = await connectDB();
+    const rows = await db
+      .collection('simulaciones')
+      .find({ uid })
+      .sort({ created_at: -1 })
+      .toArray();
 
-    res.json(rows);
+    // Normalizar _id a id para compatibilidad con el frontend
+    const formatted = rows.map(({ _id, ...rest }) => ({ id: _id, ...rest }));
+
+    res.json(formatted);
   } catch (error) {
     console.error('Error al obtener simulaciones:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -64,76 +73,95 @@ router.get('/estadisticas', async (req, res) => {
   try {
     const { uid } = req;
 
-    const [stats] = await pool.execute(
-      `SELECT
-         COUNT(*) AS total_registros,
-         MAX(created_at) AS ultimo_registro,
-         COALESCE(AVG(cuota_mensual), 0) AS promedio_cuota,
-         COALESCE(AVG(tasa_mensual), 0) AS promedio_tasa,
-         COALESCE(SUM(monto_prestamo), 0) AS total_monto,
-         COALESCE(SUM(total_intereses), 0) AS total_intereses_acumulado,
-         COALESCE(MAX(total_intereses), 0) AS mayor_interes
-       FROM simulaciones
-       WHERE uid = ?`,
-      [uid]
-    );
+    const db = await connectDB();
+    const col = db.collection('simulaciones');
 
-    // Obtener la fecha de la simulación con mayor interés
-    const [mayorInteresRow] = await pool.execute(
-      `SELECT total_intereses, created_at
-       FROM simulaciones
-       WHERE uid = ?
-       ORDER BY total_intereses DESC
-       LIMIT 1`,
-      [uid]
-    );
+    // Estadísticas generales
+    const statsAgg = await col
+      .aggregate([
+        { $match: { uid } },
+        {
+          $group: {
+            _id: null,
+            total_registros: { $sum: 1 },
+            ultimo_registro: { $max: '$created_at' },
+            promedio_cuota: { $avg: '$cuota_mensual' },
+            promedio_tasa: { $avg: '$tasa_mensual' },
+            total_monto: { $sum: '$monto_prestamo' },
+            total_intereses_acumulado: { $sum: '$total_intereses' },
+            mayor_interes: { $max: '$total_intereses' },
+          },
+        },
+      ])
+      .toArray();
 
-    // Distribución por riesgo para gráficas
-    const [riesgoDist] = await pool.execute(
-      `SELECT clasificacion_riesgo, COUNT(*) AS cantidad
-       FROM simulaciones
-       WHERE uid = ?
-       GROUP BY clasificacion_riesgo`,
-      [uid]
-    );
+    const stats = statsAgg[0] || {
+      total_registros: 0,
+      ultimo_registro: null,
+      promedio_cuota: 0,
+      promedio_tasa: 0,
+      total_monto: 0,
+      total_intereses_acumulado: 0,
+      mayor_interes: 0,
+    };
+
+    // Simulación con mayor interés
+    const mayorInteresRow = await col
+      .find({ uid })
+      .sort({ total_intereses: -1 })
+      .limit(1)
+      .toArray();
+
+    // Distribución por riesgo
+    const riesgoDistAgg = await col
+      .aggregate([
+        { $match: { uid } },
+        { $group: { _id: '$clasificacion_riesgo', cantidad: { $sum: 1 } } },
+      ])
+      .toArray();
 
     // Evolución mensual (últimos 12 meses)
-    const [evolucion] = await pool.execute(
-      `SELECT
-         DATE_FORMAT(created_at, '%Y-%m') AS mes,
-         COUNT(*) AS cantidad,
-         AVG(cuota_mensual) AS promedio_cuota,
-         SUM(monto_prestamo) AS total_monto
-       FROM simulaciones
-       WHERE uid = ?
-       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-       ORDER BY mes DESC
-       LIMIT 12`,
-      [uid]
-    );
+    const evolucionAgg = await col
+      .aggregate([
+        { $match: { uid } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m', date: '$created_at' },
+            },
+            cantidad: { $sum: 1 },
+            promedio_cuota: { $avg: '$cuota_mensual' },
+            total_monto: { $sum: '$monto_prestamo' },
+          },
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 12 },
+      ])
+      .toArray();
 
     res.json({
-      totalRegistros: stats[0].total_registros,
-      ultimoRegistro: stats[0].ultimo_registro,
-      promedioCuota: Number(stats[0].promedio_cuota),
-      promedioTasa: Number(stats[0].promedio_tasa),
-      totalMonto: Number(stats[0].total_monto),
-      totalInteresesAcumulado: Number(stats[0].total_intereses_acumulado),
-      mayorInteres: mayorInteresRow.length > 0
-        ? {
-            totalInteres: Number(mayorInteresRow[0].total_intereses),
-            createdAt: mayorInteresRow[0].created_at,
-          }
-        : null,
-      distribucionRiesgo: riesgoDist.map((r) => ({
-        clasificacion: r.clasificacion_riesgo,
+      totalRegistros: stats.total_registros,
+      ultimoRegistro: stats.ultimo_registro,
+      promedioCuota: Number(stats.promedio_cuota || 0),
+      promedioTasa: Number(stats.promedio_tasa || 0),
+      totalMonto: Number(stats.total_monto || 0),
+      totalInteresesAcumulado: Number(stats.total_intereses_acumulado || 0),
+      mayorInteres:
+        mayorInteresRow.length > 0
+          ? {
+              totalInteres: Number(mayorInteresRow[0].total_intereses),
+              createdAt: mayorInteresRow[0].created_at,
+            }
+          : null,
+      distribucionRiesgo: riesgoDistAgg.map((r) => ({
+        clasificacion: r._id,
         cantidad: r.cantidad,
       })),
-      evolucionMensual: evolucion.reverse().map((e) => ({
-        mes: e.mes,
+      evolucionMensual: evolucionAgg.reverse().map((e) => ({
+        mes: e._id,
         cantidad: e.cantidad,
-        promedioCuota: Number(e.promedio_cuota),
-        totalMonto: Number(e.total_monto),
+        promedioCuota: Number(e.promedio_cuota || 0),
+        totalMonto: Number(e.total_monto || 0),
       })),
     });
   } catch (error) {

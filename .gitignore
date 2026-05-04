@@ -1,17 +1,20 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
-
-# Node
-/node_modules
+# ─── Node ───────────────────────────────────────────────
+frontend/node_modules
+backend/node_modules
 npm-debug.log
 yarn-error.log
 
-# IDEs and editors
+# ─── Angular ────────────────────────────────────────────
+frontend/dist
+frontend/.angular/cache
+frontend/out-tsc
+frontend/bazel-out
+frontend/coverage
+
+# ─── Backend ────────────────────────────────────────────
+backend/.env
+
+# ─── IDEs y editores ────────────────────────────────────
 .idea/
 .project
 .classpath
@@ -19,24 +22,21 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
+.history/
 
-# Visual Studio Code
+# ─── Visual Studio Code ─────────────────────────────────
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
-.history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-
-# System files
+# ─── Sistema operativo ──────────────────────────────────
 .DS_Store
 Thumbs.db
+.zshrc
+
+# ─── Logs temporales ────────────────────────────────────
+*.log
+/tmp
+node_modules
