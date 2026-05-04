@@ -1,6 +1,6 @@
 # Simulador de Préstamos
 
-Monorepo con frontend Angular 17 y backend Express/Node.js para simular préstamos personales, analizar intereses y generar reportes financieros.
+Monorepo con frontend Angular 17 y backend Express/Node.js para simular préstamos personales, analizar intereses y generar reportes financieros. Los datos se persisten en **MongoDB Atlas**.
 
 ## Estructura del proyecto
 
@@ -18,8 +18,8 @@ simulador-prestamos-app/
 │   ├── routes/        (simulaciones, api-externa)
 │   ├── middleware/    (auth Firebase)
 │   ├── server.js
-│   ├── db.js
-│   ├── schema.sql
+│   ├── db.js          ← Conexión a MongoDB Atlas
+│   ├── .env.example
 │   └── package.json
 │
 └── package.json       ← Scripts de conveniencia (raíz)
@@ -29,7 +29,7 @@ simulador-prestamos-app/
 
 - Node.js 20+
 - npm 10+
-- MySQL 8+
+- Cuenta en [MongoDB Atlas](https://www.mongodb.com/atlas) (o instancia local de MongoDB)
 - Navegador moderno (Chrome recomendado)
 
 ---
@@ -58,9 +58,7 @@ cp backend/.env.example backend/.env
 Editar `backend/.env` con los valores reales:
 
 ```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=tu_password
+MONGODB_URI=mongodb+srv://<usuario>:<password>@cluster0.xxxx.mongodb.net/?appName=Cluster0
 DB_NAME=simulador_prestamos
 PORT=3000
 ```
@@ -98,6 +96,19 @@ cd backend  && npm run dev      # Express en :3000 (node --watch)
 
 ---
 
+## API REST
+
+Todas las rutas requieren un token de Firebase en el header `Authorization: Bearer <token>`.
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/simulaciones` | Guarda una nueva simulación |
+| `GET` | `/api/simulaciones` | Lista las simulaciones del usuario |
+| `GET` | `/api/simulaciones/estadisticas` | Devuelve métricas históricas del usuario |
+| `GET` | `/api/health` | Health check (sin autenticación) |
+
+---
+
 ## Funcionalidades
 
 ### Simulación financiera
@@ -116,8 +127,9 @@ cd backend  && npm run dev      # Express en :3000 (node --watch)
 - Total de simulaciones por usuario
 - Última actividad
 - Simulación con mayor interés histórico
-- Promedio histórico de cuota
-- Comparación cuota actual vs promedio histórico
+- Promedio histórico de cuota y tasa
+- Distribución de riesgo (para gráficas)
+- Evolución mensual (últimos 12 meses)
 
 ### Visualización
 - Gráfica circular: capital vs interés
@@ -138,7 +150,7 @@ cd backend  && npm run dev      # Express en :3000 (node --watch)
 | Frontend | Angular 17 (standalone components) |
 | UI | Angular Material, ng2-charts + Chart.js |
 | Auth | Firebase Authentication (Google) |
-| Base de datos | Firestore + MySQL 8 |
+| Base de datos | MongoDB Atlas |
 | Backend | Express 4, Node.js 20+ |
 | PDF | jsPDF + jspdf-autotable |
 
