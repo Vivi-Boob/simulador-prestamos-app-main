@@ -9,5 +9,5 @@ export const environment = {
     appId: '1:892124406666:web:582f196b1f43648f641e73',
     measurementId: 'G-77MBZNXXNH',
   },
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://simulador-prestamos-app-main-production.up.railway.app/api',
 };
