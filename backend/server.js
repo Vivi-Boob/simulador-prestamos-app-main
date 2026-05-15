@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares globales
-app.use(cors({ origin: 'http://localhost:4200' }));
+app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json());
 
 // Rutas protegidas (requieren token Firebase)
